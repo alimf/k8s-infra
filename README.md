@@ -15,11 +15,20 @@ modules/
         worker.sh.tpl
 environments/
   dev/
-    aws/              # Standalone EC2 demo
-    k8s/              # Self-managed Kubernetes cluster
+    aws/
+      ec2/            # Standalone EC2 demo
+      k8s/            # Self-managed Kubernetes cluster (Terraform)
+kustomize/
+  base/
+    metrics-server/   # Cluster add-on bases
+  overlays/
+    aws/
+      dev/            # kubectl apply -k kustomize/overlays/aws/dev
 ```
 
-## What gets deployed (`environments/dev/k8s`)
+Terraform provisions infrastructure (`environments/<env>/<cloud>/<stack>`); Kustomize deploys workloads/add-ons onto the resulting cluster (`kustomize/overlays/<cloud>/<env>`). The two are applied independently — Terraform never invokes `kubectl`.
+
+## What gets deployed (`environments/dev/aws/k8s`)
 
 | Component | Detail |
 |---|---|
@@ -34,7 +43,7 @@ environments/
 ## Deploy
 
 ```bash
-cd environments/dev/k8s
+cd environments/dev/aws/k8s
 terraform init
 terraform plan
 terraform apply
@@ -52,6 +61,14 @@ aws ssm start-session --target <instance-id> --region us-east-1
 # On the instance
 cat /root/.kube/config
 ```
+
+Copy that kubeconfig locally (e.g. to `~/.kube/config` or `KUBECONFIG=./dev-k8s.conf`), then deploy cluster add-ons with Kustomize:
+
+```bash
+kubectl apply -k kustomize/overlays/aws/dev
+```
+
+`kustomize/base/` holds cloud-agnostic add-on definitions; `kustomize/overlays/<cloud>/<env>/` layers environment-specific patches on top (e.g. the `--kubelet-insecure-tls` patch metrics-server needs against kubeadm's self-signed kubelet certs). A new environment or cloud just adds a new overlay directory — no changes to `base/`.
 
 ## Next steps
 

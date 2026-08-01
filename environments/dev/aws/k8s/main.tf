@@ -7,7 +7,7 @@ locals {
 }
 
 module "network" {
-  source = "../../../modules/network/aws"
+  source = "../../../../modules/network/aws"
 
   cluster_name         = var.cluster_name
   vpc_cidr             = var.vpc_cidr
@@ -19,7 +19,7 @@ module "network" {
 }
 
 module "kubernetes" {
-  source = "../../../modules/kubernetes/aws"
+  source = "../../../../modules/kubernetes/aws"
 
   cluster_name                = var.cluster_name
   kubernetes_version          = var.kubernetes_version
