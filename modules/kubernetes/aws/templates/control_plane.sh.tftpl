@@ -32,7 +32,6 @@ echo "[bootstrap] Kubernetes control plane bootstrap started"
 echo "[bootstrap] Time: $(date)"
 echo "============================================================"
 
-
 # -------------------------------------------------------------------
 # Terraform-injected variables
 # -------------------------------------------------------------------
@@ -45,7 +44,6 @@ POD_CIDR="${pod_cidr}"
 SERVICE_CIDR="${service_cidr}"
 AWS_REGION="${aws_region}"
 SSM_PATH="${ssm_join_command_path}"
-
 
 # -------------------------------------------------------------------
 # Configuration
@@ -60,7 +58,6 @@ DOCKER_APT_KEYRING="/etc/apt/keyrings/docker.gpg"
 MAX_RETRIES=30
 RETRY_INTERVAL=10
 
-
 # -------------------------------------------------------------------
 # Helper functions
 # -------------------------------------------------------------------
@@ -68,12 +65,10 @@ RETRY_INTERVAL=10
 log() {
     echo "[bootstrap] $1"
 }
-
 error() {
     echo "[bootstrap][ERROR] $1" >&2
     exit 1
 }
-
 retry() {
     local description="$1"
     shift
@@ -96,7 +91,6 @@ retry() {
         ((attempt++))
     done
 }
-
 
 # -------------------------------------------------------------------
 # Validate Terraform variables
@@ -122,7 +116,6 @@ log "Service CIDR: $${SERVICE_CIDR}"
 log "AWS region: $${AWS_REGION}"
 log "SSM path: $${SSM_PATH}"
 
-
 # -------------------------------------------------------------------
 # Detect primary network interface and private IP
 # -------------------------------------------------------------------
@@ -146,7 +139,6 @@ NODE_IP=$(
 
 log "Primary interface: $${PRIMARY_INTERFACE}"
 log "Node private IP: $${NODE_IP}"
-
 
 # -------------------------------------------------------------------
 # System prerequisites
@@ -174,7 +166,6 @@ MODULES
 modprobe overlay
 modprobe br_netfilter
 
-
 # -------------------------------------------------------------------
 # Kernel networking parameters
 # -------------------------------------------------------------------
@@ -188,7 +179,6 @@ net.ipv4.ip_forward                 = 1
 SYSCTL
 
 sysctl --system
-
 
 # -------------------------------------------------------------------
 # Required system packages
@@ -211,7 +201,6 @@ apt-get install -y \
     iptables \
     awscli
 
-
 # -------------------------------------------------------------------
 # Verify AWS CLI
 # -------------------------------------------------------------------
@@ -222,7 +211,6 @@ command -v aws >/dev/null 2>&1 \
     || error "AWS CLI is not installed"
 
 aws --version
-
 
 # -------------------------------------------------------------------
 # Install containerd
@@ -239,7 +227,6 @@ if [[ ! -f "$${DOCKER_APT_KEYRING}" ]]; then
     chmod a+r "$${DOCKER_APT_KEYRING}"
 fi
 
-
 UBUNTU_CODENAME=$(. /etc/os-release && echo "$${UBUNTU_CODENAME:-$${VERSION_CODENAME}}")
 
 cat > /etc/apt/sources.list.d/docker.list <<EOF
@@ -249,7 +236,6 @@ EOF
 apt-get update -y
 
 apt-get install -y containerd.io
-
 
 # -------------------------------------------------------------------
 # Configure containerd
@@ -272,7 +258,6 @@ systemctl daemon-reload
 systemctl enable containerd
 systemctl restart containerd
 
-
 # -------------------------------------------------------------------
 # Verify containerd
 # -------------------------------------------------------------------
@@ -288,7 +273,6 @@ containerd config dump \
 
 log "containerd is running with systemd cgroups"
 
-
 # -------------------------------------------------------------------
 # Install Kubernetes packages
 # -------------------------------------------------------------------
@@ -298,7 +282,6 @@ log "Installing Kubernetes $${K8S_VERSION}"
 K8S_MINOR=$(echo "$${K8S_VERSION}" | cut -d. -f1,2)
 
 install -m 0755 -d /etc/apt/keyrings
-
 
 # Kubernetes repository key
 if [[ ! -f "$${KUBE_APT_KEYRING}" ]]; then
@@ -310,15 +293,12 @@ if [[ ! -f "$${KUBE_APT_KEYRING}" ]]; then
     chmod a+r "$${KUBE_APT_KEYRING}"
 fi
 
-
 # Kubernetes repository
 cat > /etc/apt/sources.list.d/kubernetes.list <<EOF
 deb [signed-by=$${KUBE_APT_KEYRING}] https://pkgs.k8s.io/core:/stable:/v$${K8S_MINOR}/deb/ /
 EOF
 
-
 apt-get update -y
-
 
 # Install the requested Kubernetes version.
 apt-get install -y \
@@ -326,12 +306,10 @@ apt-get install -y \
     "kubeadm=$${K8S_VERSION}-*" \
     "kubectl=$${K8S_VERSION}-*"
 
-
 # Prevent unattended upgrades from changing Kubernetes versions.
 apt-mark hold kubelet kubeadm kubectl
 
 systemctl enable kubelet
-
 
 # -------------------------------------------------------------------
 # Verify Kubernetes binaries
@@ -342,7 +320,6 @@ log "Verifying Kubernetes binaries"
 kubeadm version
 kubectl version --client
 kubelet --version
-
 
 # -------------------------------------------------------------------
 # Validate API endpoint
@@ -364,7 +341,6 @@ fi
 
 log "API endpoint: $${API_ENDPOINT}:6443"
 
-
 # -------------------------------------------------------------------
 # Create kubeadm configuration
 # -------------------------------------------------------------------
@@ -382,17 +358,15 @@ localAPIEndpoint:
 nodeRegistration:
   criSocket: unix:///run/containerd/containerd.sock
   kubeletExtraArgs:
-    node-ip: "$${NODE_IP}"
+    - name: "node-ip"
+      value: "$${NODE_IP}"
 
 ---
 
 apiVersion: kubeadm.k8s.io/v1beta4
 kind: ClusterConfiguration
-
 clusterName: "$${CLUSTER_NAME}"
-
 kubernetesVersion: "v$${K8S_VERSION}"
-
 controlPlaneEndpoint: "$${API_ENDPOINT}:6443"
 
 networking:
@@ -407,9 +381,7 @@ kind: KubeletConfiguration
 cgroupDriver: systemd
 KUBEADM
 
-
 chmod 600 "$${KUBEADM_CONFIG}"
-
 
 # -------------------------------------------------------------------
 # kubeadm preflight
@@ -420,7 +392,6 @@ log "Running kubeadm preflight checks"
 kubeadm init phase preflight \
     --config "$${KUBEADM_CONFIG}"
 
-
 # -------------------------------------------------------------------
 # Initialize Kubernetes control plane
 # -------------------------------------------------------------------
@@ -430,7 +401,6 @@ log "Initializing Kubernetes control plane"
 kubeadm init \
     --config "$${KUBEADM_CONFIG}" \
     --upload-certs
-
 
 # -------------------------------------------------------------------
 # Configure kubectl for root
@@ -443,7 +413,6 @@ mkdir -p /root/.kube
 cp -f /etc/kubernetes/admin.conf /root/.kube/config
 
 chmod 600 /root/.kube/config
-
 
 # -------------------------------------------------------------------
 # Configure kubectl for Ubuntu user
@@ -463,7 +432,6 @@ if id ubuntu >/dev/null 2>&1; then
     chmod 600 /home/ubuntu/.kube/config
 fi
 
-
 # -------------------------------------------------------------------
 # Verify Kubernetes API
 # -------------------------------------------------------------------
@@ -473,7 +441,6 @@ log "Verifying Kubernetes API"
 kubectl \
     --kubeconfig=/etc/kubernetes/admin.conf \
     get nodes
-
 
 # -------------------------------------------------------------------
 # Install Calico CNI
@@ -486,7 +453,6 @@ CALICO_MANIFEST="https://raw.githubusercontent.com/projectcalico/calico/v$${CALI
 kubectl \
     --kubeconfig=/etc/kubernetes/admin.conf \
     apply -f "$${CALICO_MANIFEST}"
-
 
 # -------------------------------------------------------------------
 # Wait for Calico
@@ -506,7 +472,6 @@ kubectl \
     rollout status deployment/calico-kube-controllers \
     --timeout=10m
 
-
 # -------------------------------------------------------------------
 # Wait for control-plane node
 # -------------------------------------------------------------------
@@ -522,7 +487,6 @@ kubectl \
     "node/$${CONTROL_PLANE_NODE}" \
     --timeout=10m
 
-
 # -------------------------------------------------------------------
 # Verify cluster
 # -------------------------------------------------------------------
@@ -537,7 +501,6 @@ kubectl \
     --kubeconfig=/etc/kubernetes/admin.conf \
     get pods -A
 
-
 # -------------------------------------------------------------------
 # Generate worker join command
 # -------------------------------------------------------------------
@@ -551,7 +514,6 @@ JOIN_CMD=$(
 [[ -n "$${JOIN_CMD}" ]] \
     || error "Failed to generate worker join command"
 
-
 # -------------------------------------------------------------------
 # Verify AWS identity
 # -------------------------------------------------------------------
@@ -560,7 +522,6 @@ log "Verifying AWS credentials"
 
 aws sts get-caller-identity \
     --region "$${AWS_REGION}"
-
 
 # -------------------------------------------------------------------
 # Publish worker join command to SSM
@@ -575,10 +536,7 @@ aws ssm put-parameter \
     --type SecureString \
     --overwrite
 
-
-# -------------------------------------------------------------------
 # Verify SSM parameter
-# -------------------------------------------------------------------
 
 log "Verifying SSM parameter"
 
@@ -588,10 +546,7 @@ aws ssm get-parameter \
     --with-decryption \
     >/dev/null
 
-
-# -------------------------------------------------------------------
 # Final cluster verification
-# -------------------------------------------------------------------
 
 log "Final Kubernetes verification"
 
@@ -603,10 +558,7 @@ kubectl \
     --kubeconfig=/etc/kubernetes/admin.conf \
     get nodes -o wide
 
-
-# -------------------------------------------------------------------
 # Bootstrap complete
-# -------------------------------------------------------------------
 
 echo "============================================================"
 echo "[bootstrap] Kubernetes control plane bootstrap COMPLETE"

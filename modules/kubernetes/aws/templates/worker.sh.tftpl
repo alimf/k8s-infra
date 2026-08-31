@@ -8,7 +8,6 @@
 #   kubernetes_version
 #   aws_region
 #   ssm_join_command_path
-#
 
 set -Eeuo pipefail
 
@@ -63,7 +62,6 @@ error() {
     exit 1
 }
 
-
 # -------------------------------------------------------------------
 # Validate configuration
 # -------------------------------------------------------------------
@@ -82,7 +80,6 @@ log "Validating configuration"
 log "Kubernetes version: $${K8S_VERSION}"
 log "AWS region: $${AWS_REGION}"
 log "SSM parameter: $${SSM_PATH}"
-
 
 # -------------------------------------------------------------------
 # Detect primary network interface and private IP
@@ -134,7 +131,6 @@ MODULES
 modprobe overlay
 modprobe br_netfilter
 
-
 # -------------------------------------------------------------------
 # Kernel networking configuration
 # -------------------------------------------------------------------
@@ -148,7 +144,6 @@ net.ipv4.ip_forward                 = 1
 SYSCTL
 
 sysctl --system
-
 
 # -------------------------------------------------------------------
 # Install system prerequisites
@@ -171,7 +166,6 @@ apt-get install -y \
     iptables \
     awscli
 
-
 # -------------------------------------------------------------------
 # Verify AWS CLI
 # -------------------------------------------------------------------
@@ -183,7 +177,6 @@ command -v aws >/dev/null 2>&1 \
 
 aws --version
 
-
 # -------------------------------------------------------------------
 # Verify AWS credentials / instance role
 # -------------------------------------------------------------------
@@ -192,7 +185,6 @@ log "Verifying AWS instance identity"
 
 aws sts get-caller-identity \
     --region "$${AWS_REGION}"
-
 
 # -------------------------------------------------------------------
 # Install containerd
@@ -219,7 +211,6 @@ UBUNTU_CODENAME=$(. /etc/os-release && echo "$${UBUNTU_CODENAME:-$${VERSION_CODE
 cat > /etc/apt/sources.list.d/docker.list <<EOF
 deb [arch=$(dpkg --print-architecture) signed-by=$${DOCKER_APT_KEYRING}] https://download.docker.com/linux/ubuntu $${UBUNTU_CODENAME} stable
 EOF
-
 
 apt-get update -y
 
@@ -289,9 +280,7 @@ cat > /etc/apt/sources.list.d/kubernetes.list <<EOF
 deb [signed-by=$${KUBE_APT_KEYRING}] https://pkgs.k8s.io/core:/stable:/v$${K8S_MINOR}/deb/ /
 EOF
 
-
 apt-get update -y
-
 
 apt-get install -y \
     "kubelet=$${K8S_VERSION}-*" \
@@ -301,7 +290,6 @@ apt-get install -y \
 apt-mark hold kubelet kubeadm
 
 systemctl enable kubelet
-
 
 # -------------------------------------------------------------------
 # Verify Kubernetes binaries

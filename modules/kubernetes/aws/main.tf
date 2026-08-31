@@ -360,7 +360,7 @@ resource "aws_instance" "control_plane" {
     encrypted             = true
   }
 
-  user_data = base64encode(templatefile("${path.module}/templates/control_plane.sh.tftpl", {
+  user_data = templatefile("${path.module}/templates/control_plane.sh.tftpl", {
     cluster_name          = var.cluster_name
     kubernetes_version    = var.kubernetes_version
     calico_version        = var.calico_version
@@ -369,7 +369,7 @@ resource "aws_instance" "control_plane" {
     service_cidr          = var.service_cidr
     aws_region            = data.aws_region.current.region
     ssm_join_command_path = local.ssm_join_command_path
-  }))
+  })
 
   tags = merge(var.tags, {
     Name                                        = "${var.cluster_name}-control-plane-${count.index + 1}"
@@ -403,11 +403,11 @@ resource "aws_instance" "worker" {
     encrypted             = true
   }
 
-  user_data = base64encode(templatefile("${path.module}/templates/worker.sh.tftpl", {
+  user_data = templatefile("${path.module}/templates/worker.sh.tftpl", {
     kubernetes_version    = var.kubernetes_version
     aws_region            = data.aws_region.current.region
     ssm_join_command_path = local.ssm_join_command_path
-  }))
+  })
 
   tags = merge(var.tags, {
     Name                                        = "${var.cluster_name}-worker-${count.index + 1}"
