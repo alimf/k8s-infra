@@ -360,7 +360,7 @@ resource "aws_instance" "control_plane" {
     encrypted             = true
   }
 
-  user_data = base64encode(templatefile("${path.module}/templates/control_plane.sh.tpl", {
+  user_data = base64encode(templatefile("${path.module}/templates/control_plane.sh.tftpl", {
     cluster_name          = var.cluster_name
     kubernetes_version    = var.kubernetes_version
     calico_version        = var.calico_version
@@ -403,7 +403,7 @@ resource "aws_instance" "worker" {
     encrypted             = true
   }
 
-  user_data = base64encode(templatefile("${path.module}/templates/worker.sh.tpl", {
+  user_data = base64encode(templatefile("${path.module}/templates/worker.sh.tftpl", {
     kubernetes_version    = var.kubernetes_version
     aws_region            = data.aws_region.current.region
     ssm_join_command_path = local.ssm_join_command_path
