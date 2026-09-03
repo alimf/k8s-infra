@@ -70,6 +70,14 @@ kubectl apply -k kustomize/overlays/aws/dev
 
 `kustomize/base/` holds cloud-agnostic add-on definitions; `kustomize/overlays/<cloud>/<env>/` layers environment-specific patches on top (e.g. the `--kubelet-insecure-tls` patch metrics-server needs against kubeadm's self-signed kubelet certs). A new environment or cloud just adds a new overlay directory — no changes to `base/`.
 
+## Notable engineering challenges
+
+30+ real production issues encountered and root-caused while building
+this — Terraform templating bugs, AWS service limits, breaking API
+changes across Kubernetes versions, and more.
+
+→ [Full challenge log](docs/challenges/README.md)
+
 ## Next steps
 
 - [ ] **Restrict API server access** — change `api_server_allowed_cidrs` in `terraform.tfvars` from `0.0.0.0/0` to your VPN or corporate CIDR before production use
